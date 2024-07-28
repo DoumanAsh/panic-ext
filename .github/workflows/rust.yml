@@ -20,5 +20,5 @@ jobs:
     if: github.event.pull_request.draft == false
     uses: DoumanAsh/douman-ci/.github/workflows/rust.yml@master
     with:
-      cargo-features: "alloc"
+      cargo-features: "alloc,std"
       cargo-no-features: true

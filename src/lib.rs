@@ -8,6 +8,8 @@
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::fmt;
 use core::panic::{Location, PanicInfo};
@@ -104,6 +106,10 @@ impl<'a> PanicInfoExt<'a> for alloc::boxed::Box<dyn core::any::Any + Send + 'sta
             message: downcast_payload(self),
         }
     }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for PanicDetails<'_> {
 }
 
 impl fmt::Display for PanicDetails<'_> {
