@@ -1,6 +1,6 @@
 # panic-ext
 
-![Rust](https://github.com/DoumanAsh/panic-ext/workflows/Rust/badge.svg?branch=master)
+[![Rust](https://github.com/DoumanAsh/panic-ext/actions/workflows/rust.yml/badge.svg)](https://github.com/DoumanAsh/panic-ext/actions/workflows/rust.yml)
 [![Crates.io](https://img.shields.io/crates/v/panic-ext.svg)](https://crates.io/crates/panic-ext)
 [![Documentation](https://docs.rs/panic-ext/badge.svg)](https://docs.rs/crate/panic-ext/)
 
