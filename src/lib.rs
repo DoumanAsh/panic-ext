@@ -24,6 +24,19 @@ pub trait Message: fmt::Display + fmt::Debug {}
 
 impl<T: fmt::Display + fmt::Debug> Message for T {}
 
+#[track_caller]
+#[inline(always)]
+///Retrieves panic details
+pub fn panic_details<'a>(payload: &'a impl PanicInfoExt<'a>) -> PanicDetails<'a, impl Message + 'a> {
+    payload.panic_details()
+}
+
+#[inline(always)]
+///Retrieves panic message
+pub fn panic_message<'a>(payload: &'a impl PanicInfoExt<'a>) -> impl Message + 'a {
+    payload.panic_message()
+}
+
 #[inline(always)]
 ///Retrieves panic message from the dynamic payload
 ///
