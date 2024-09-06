@@ -6,7 +6,9 @@
 
 Extension library to panic facilities to make it more usable
 
+Requires Rust 1.81
+
 ## Features
 
-- `alloc` - Enables `String` usage via `alloc`. This is useful until [message](https://doc.rust-lang.org/std/panic/struct.PanicInfo.html#method.message) is stable
+- `alloc` - Enables usage of `alloc` types
 - `std` - Enables `std::error::Error` impl on panic details. Implies `alloc`

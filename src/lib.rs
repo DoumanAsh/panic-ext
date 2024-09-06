@@ -1,6 +1,10 @@
 //!Extension library to panic facilities to make it more usable
 //!
-//!- `alloc` - Enables `String` usage via `alloc`. This is useful until [message](https://doc.rust-lang.org/std/panic/struct.PanicInfo.html#method.message) is stable
+//!Requires Rust 1.81
+//!
+//!## Features
+//!
+//!- `alloc` - Enables usage of `alloc` types
 //!- `std` - Enables `std::error::Error` impl on panic details. Implies `alloc`
 
 #![no_std]
@@ -38,15 +42,9 @@ pub fn downcast_payload<'a>(payload: &'a (dyn core::any::Any + Send + 'static)) 
     }
 }
 
-#[inline(always)]
-///Retrieves panic message from the panic info
-pub fn get_message<'a>(panic: &'a PanicInfo<'a>) -> &'a dyn Message {
-    downcast_payload(panic.payload())
-}
-
 #[derive(Clone, Copy, Debug)]
 ///Panic details
-pub struct PanicDetails<'a> {
+pub struct PanicDetails<'a, M: 'a> {
     ///Panic location
     ///
     ///Location is optional in PanicInfo.
@@ -56,68 +54,92 @@ pub struct PanicDetails<'a> {
     pub location: &'a Location<'a>,
     ///Panic message which can string or
     ///[core::fmt::Arguments](https://doc.rust-lang.org/core/fmt/struct.Arguments.html)
-    pub message: &'a dyn Message,
+    pub message: M,
+}
+
+impl<M: Message> core::error::Error for PanicDetails<'_, M> {
+}
+
+impl<M: Message> fmt::Display for PanicDetails<'_, M> {
+    #[inline(always)]
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.location, fmt)?;
+        fmt.write_str(": ")?;
+        fmt::Display::fmt(&self.message, fmt)
+    }
 }
 
 ///Extension trait to provide better API for PanicInfo
 pub trait PanicInfoExt<'a> {
+    ///Retrieves underlying panic message
+    fn panic_message(&'a self) -> impl Message + 'a;
+
+    #[track_caller]
+    #[inline(always)]
     ///Access uniform details of panic
-    fn panic_details(&'a self) -> PanicDetails<'a>;
+    ///
+    ///Default implementation uses location of this function call.
+    ///When panic location is known, it is overridden with specialized version
+    fn panic_details(&'a self) -> PanicDetails<'a, impl Message + 'a> {
+        PanicDetails {
+            location: Location::caller(),
+            message: self.panic_message(),
+        }
+    }
 }
 
 impl<'a> PanicInfoExt<'a> for PanicInfo<'a> {
+    #[inline(always)]
+    fn panic_message(&'a self) -> impl Message + 'a {
+        self.message()
+    }
+
     #[track_caller]
     #[inline(always)]
-    fn panic_details(&'a self) -> PanicDetails<'a> {
+    fn panic_details(&'a self) -> PanicDetails<'a, impl Message + 'a> {
         let location = match self.location() {
             Some(location) => location,
             None => Location::caller(),
         };
         PanicDetails {
             location,
-            message: get_message(self),
+            message: self.panic_message()
         }
     }
 }
 
 impl<'a> PanicInfoExt<'a> for &'a (dyn core::any::Any + Send + 'static) {
-    #[track_caller]
     #[inline(always)]
-    ///Retrieves panic details from the raw payload
-    ///As raw payload doesn't have location information
-    ///It shall be initialized from where this function is called
-    fn panic_details(&'a self) -> PanicDetails<'a> {
-        PanicDetails {
-            location: Location::caller(),
-            message: downcast_payload(*self),
-        }
+    fn panic_message(&'a self) -> impl Message + 'a {
+        downcast_payload(*self)
     }
 }
 
 #[cfg(feature = "alloc")]
 impl<'a> PanicInfoExt<'a> for alloc::boxed::Box<dyn core::any::Any + Send + 'static> {
-    #[track_caller]
     #[inline(always)]
-    ///Retrieves panic details from the raw payload
-    ///As raw payload doesn't have location information
-    ///It shall be initialized from where this function is called
-    fn panic_details(&'a self) -> PanicDetails<'a> {
-        PanicDetails {
-            location: Location::caller(),
-            message: downcast_payload(self),
-        }
+    fn panic_message(&'a self) -> impl Message + 'a {
+        downcast_payload(self)
     }
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for PanicDetails<'_> {
-}
-
-impl fmt::Display for PanicDetails<'_> {
+impl<'a> PanicInfoExt<'a> for std::panic::PanicHookInfo<'a> {
     #[inline(always)]
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.location, fmt)?;
-        fmt.write_str(": ")?;
-        fmt::Display::fmt(self.message, fmt)
+    fn panic_message(&'a self) -> impl Message + 'a {
+        downcast_payload(self.payload())
+    }
+
+    #[track_caller]
+    #[inline(always)]
+    fn panic_details(&'a self) -> PanicDetails<'a, impl Message + 'a> {
+        let location = match self.location() {
+            Some(location) => location,
+            None => Location::caller(),
+        };
+        PanicDetails {
+            location,
+            message: self.panic_message()
+        }
     }
 }
