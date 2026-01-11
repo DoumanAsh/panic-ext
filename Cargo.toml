@@ -2,7 +2,8 @@
 name = "panic-ext"
 version = "2.1.0"
 authors = ["Douman <douman@gmx.se>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.81.0"
 description = "Extension library to panic facilities to make it more usable"
 readme = "README.md"
 repository = "https://github.com/DoumanAsh/panic-ext"
@@ -21,3 +22,6 @@ include = [
 alloc = []
 # Enables std::error::Error impl
 std = ["alloc"]
+
+[package.metadata.docs.rs]
+features = ["std"]
